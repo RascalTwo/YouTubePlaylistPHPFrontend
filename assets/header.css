@@ -1,0 +1,15 @@
+#navigation > ul{
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+#navigation > ul > li{
+    float: left;
+}
+
+#navigation > ul > li > a{
+    display: block;
+    padding: 8px;
+    background-color: #dddddd;
+}
