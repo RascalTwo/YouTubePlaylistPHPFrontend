@@ -17,6 +17,5 @@ Powered by PHP.
 
 # Technical TODO
 
-Create html parser in `Video` class.
 Create rest of `Youtube_Playlist` class.
 Create Javascript code for Youtube Playlists.

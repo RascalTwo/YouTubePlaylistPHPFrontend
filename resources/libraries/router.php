@@ -28,13 +28,13 @@ class Router{
         }
 
         if (file_exists($this -> assets_path . $uri)){
-            include $this -> assets_path . $uri;
             if (strpos($uri, ".css")){
                 header("Content-type: text/css");
             }
             elseif (strpos($uri, ".js")){
                 header("Content-type: text/javascript");
             }
+            include $this -> assets_path . $uri;
             return;
         }
 

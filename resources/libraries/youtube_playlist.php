@@ -4,37 +4,57 @@ class Youtube_Playlist{
     private $id;
     public $name;
     public $videos;
-
-    public $total_length;
+    public $public;
+    public $seconds;
 
     public function __construct($id, $name, $videos){
         $this -> id = $id;
         $this -> name = $name;
         $this -> videos = $videos;
-        $this -> total_length = new Date(0)
+        $this -> seconds = new Date(0)
         foreach ($videos as $video){
-            $this -> total_length .= $video -> length;
+            $this -> seconds .= $video -> seconds;
         }
+    }
+
+    public function to_table_rows(){
+        $name = $this -> name;
+        $count = count($this -> videos);
+        $length = date('H:i:s', $this -> seconds);
+        return "<tr><td>Name</td><td>$name</td></tr><tr><td>Videos</td><td>$count</td></tr><tr><td>Full Length</td><td>$length</td></tr>";
+    }
+
+    public function get_video_list(){
+        $response = '';
+        foreach ($this -> videos as $video){
+            $response .= $video -> to_list_item();
+        }
+        return $response;
     }
 }
 
 class Video{
     private $id;
-    private $name;
-    private $length;
+    private $title;
+    private $seconds;
 
     public function __construct($url){
         $html = file_get_contents($url);
-    }
-
-    public function length_string(){
-        $minutes = floor($this -> length / 60);
-        $seconds = $this -> length - minutes;
-        return $minutes . ":" . $seconds;
+        $this -> id = explode('"', explode('<meta property="og:url" content="https://www.youtube.com/watch?v=', $html)[1])[0];
+        $this -> title = explode('"', explode('<meta property="og:title" content="', $html)[1])[0];
+        $this -> seconds = explode('"', explode('length_seconds":"', $html)[1])[0];
     }
 
     public function to_list_item(){
-        return '<li><img src="https://i.ytimg.com/vi/' . $this -> id . '/hqdefault.jpg" width="120" height="90">' . $this -> title . '<br>' . $this -> length_string() . '</li>';
+        return '<li><img src="' . $this -> thumbnail_url() . '" width="120" height="90">' . $this -> title . '<br>' . date('i:s', $this -> seconds) . '</li>';
+    }
+
+    public function thumbnail_url(){
+        return "https://i.ytimg.com/vi/" . $this -> id . "/maxresdefault.jpg";
+    }
+
+    public function embed_url(){
+        return "https://www.youtube.com/embed/" . $this -> id;
     }
 }
 

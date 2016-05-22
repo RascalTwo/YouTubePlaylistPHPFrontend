@@ -8,7 +8,7 @@
         <?php if ($spreadsheet !== ""){ ?>
             <link rel="stylesheet" type="text/css" href="<?php echo $spreadsheet; ?>.css">
         <?php } ?>
-        <script type="text/javascript" href="jquery-2.2.3.min.js"></script>
+        <script type="text/javascript" src="jquery-2.2.3.min.js"></script>
     </head>
     <body>
         <span id="navigation">
