@@ -27,9 +27,10 @@ $router -> get("/comics", function(){
     return;
 });
 
-$router -> post("/api/youtube_playlist/get", function(){
+$router -> post("/api/youtube_playlist/load", function(){
+    $
     return;
-}, ["id" => true]);
+}, ["name" => true]);
 
 $router -> match();
 
