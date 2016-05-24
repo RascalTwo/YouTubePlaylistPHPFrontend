@@ -45,7 +45,8 @@
                 <input type="button" id="load_playlist_button" value="Load Playlist">
             </span>
             <span class="toggleable_control" id="edit-controls">
-                Edit ye playlist
+                <input type="button" id="video_controls_toggle" value="Show Video Controls">
+                <br>
             </span>
             <p id="response_message">Response</p>
         </div>
@@ -71,12 +72,6 @@
     <div class="full_page" id="sidebar">
         <div class="full_page split_column" id="video_list_wrapper">
             <ul class="full_page" id="video_list">
-                <li>
-                    <img src="https://i.ytimg.com/vi/ApAIQB53KVA/hqdefault.jpg" width="120" height="90">
-                    Video Title
-                    <br>
-                    Video Details
-                </li>
             </ul>
         </div>
         <div class="full_page split_column" id="playlist_list_wrapper">
@@ -88,27 +83,37 @@
 <script type="text/javascript">
     document.getElementById("content").className += " flexbox";
 
+    var state = {
+        playlist : {
+            plays: {
+
+            }
+        },
+        controls: false
+    }
+
     var player;
     var playlist;
 
     function loadPlaylist(response){
         $("#response_message").html(response.message);
         if (response.status !== 200){
-            return;
+            return false;
         }
-        $("#video_list").html(response.video_list_html);
         playlist = response.playlist;
-        $("#playlist_name").html(response.playlist.name);
-        $("#playlist_count").html(response.playlist.video_ids.length);
-        $("#playlist_length").html(response.playlist.length);
-        if (response.playlist.video_ids.length === 0){
-            return;
+        $("#video_list").html(playlist.video_list_html);
+        $("#playlist_name").html(playlist.name);
+        $("#playlist_count").html(playlist.video_ids.length);
+        $("#playlist_length").html(playlist.length);
+        if (state.controls){
+            appendControls();
         }
-        loadVideo(response.playlist.video_ids[0]);
+        return true;
     }
 
     function loadVideo(id){
         console.log("Loading player with id of " + id);
+        $("#video_wrapper").replaceWith('<div id="video_wrapper"></div>');
         player = new YT.Player('video_wrapper', {
             width: 640,
             height: 320,
@@ -121,9 +126,18 @@
         loadVideo("8tPnX7OPo0Q");
     }
 
-    function loadPlaylists(){
+    function loadPlaylistList(){
         $.get("api/youtube_playlist/playlists", function(response){
             $("#playlist_list").html(response);
+        });
+    }
+
+    function appendControls(){
+        $('#video_list > li').each(function(){
+            $(this).append('<br>');
+            $(this).append('<img class="handy" id="' + this.id + '-remove" src="red_x.png" width="24" height="24">');
+            $(this).append('<img class="handy" id="' + this.id + '-up-reorder" src="up_arrow.png" width="24" height="24">');
+            $(this).append('<img class="handy" id="' + this.id + '-down-reorder" src="down_arrow.png" width="24" height="24">');
         });
     }
 
@@ -137,11 +151,45 @@
     $(document).ready(function(){
 
         adjustHeight();
-        loadPlaylists();
+        loadPlaylistList();
 
         $('html').on('click', '.playlist', function(event){
             $.post("api/youtube_playlist/get_playlist", {by: "id", "id": event.target.id}, function(response){
-                loadPlaylist(JSON.parse(response));
+                if (!loadPlaylist(JSON.parse(response))){
+                    return;
+                }
+                if (playlist.video_ids.length === 0){
+                    return;
+                }
+                //loadVideo(playlist.video_ids[0]);
+            });
+        });
+
+        $('html').on('click', '.video', function(event){
+            loadVideo(event.target.id);
+        });
+
+        $('html').on('click', 'img[id$="-remove"]', function(event){
+            event.stopPropagation();
+            $.post("api/youtube_playlist/remove_video", {playlist: playlist.id, id: event.target.id.split("-")[0]}, function(response){
+                loadPlaylistList();
+                $.post("api/youtube_playlist/get_playlist", {by: "id", "id": playlist.id}, function(response){
+                    loadPlaylist(JSON.parse(response));
+                });
+            });
+        });
+
+        $('html').on('click', 'img[id$="-reorder"]', function(event){
+            event.stopPropagation();
+            var data = event.target.id.split("-")
+            $.post("api/youtube_playlist/reorder_video", {playlist: playlist.id, id: data[0], direction: data[1]}, function(response){
+                if (!JSON.parse(response).refresh){
+                    return;
+                }
+                loadPlaylistList();
+                $.post("api/youtube_playlist/get_playlist", {by: "id", "id": playlist.id}, function(response){
+                    loadPlaylist(JSON.parse(response));
+                });
             });
         });
 
@@ -176,7 +224,10 @@
                     id = id.split("&")[0]
                 }
                 $.post("api/youtube_playlist/add_video", {playlist: playlist.id, type: type, id: id}, function(response){
-                    console.log(response);
+                    loadPlaylistList();
+                    $.post("api/youtube_playlist/get_playlist", {by: "id", "id": playlist.id}, function(response){
+                        loadPlaylist(JSON.parse(response));
+                    });
                 });
             });
         });
@@ -206,17 +257,37 @@
             }
             $.post("api/youtube_playlist/add", post_data, function(response){
                 $("#response_message").html(response.message);
-                $.get("api/youtube_playlist/playlists", function(response){
-                    $("#playlist_list").html(response);
-                });
+                loadPlaylistList();
             });
         });
 
         $('#load_playlist_button').click(function(){
             var name = $("#load_playlist_name").val();
             $.post("api/youtube_playlist/get_playlist", {by: "name", "name": name}, function(response){
-                loadPlaylist(JSON.parse(response));
+                if (!loadPlaylist(JSON.parse(response))){
+                    return;
+                }
+                if (playlist.video_ids.length === 0){
+                    return;
+                }
+                //loadVideo(playlist.video_ids[0]);
             });
+        });
+
+        $('#video_controls_toggle').click(function(){
+            if (state.controls){
+                state.controls = false;
+                this.value = "Show Video Controls";
+                $("#video_list").html(playlist.video_list_html);
+                return;
+            }
+            state.controls = true;
+            appendControls();
+            this.value = "Hide Video Controls";
         })
+
+        $('html').on('change', 'input[name=shuffle]'function(){
+
+        });
     });
 </script>

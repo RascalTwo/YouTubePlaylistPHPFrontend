@@ -9,13 +9,10 @@ Powered by PHP.
 - Youtube Playlist.
     - Save playlists.
     - Have public and private playlists.
-        - Private playlists loadable via entering an ID.
+        - Private playlists loadable via entering the playlist name.
+        - Private playlists editable via entering password.
     - Playlists contain videos, playable on repeat/shuffle.
+    - Playlist videos can be re-ordered.
 - Comics
     - Random comic
     - Latest comic
-
-# Technical TODO
-
-Create rest of `Youtube_Playlist` class.
-Create Javascript code for Youtube Playlists.

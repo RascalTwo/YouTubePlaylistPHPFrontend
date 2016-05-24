@@ -6,13 +6,14 @@ class Playlist{
     public $video_ids;
     public $hidden;
     public $seconds;
+    public $shuffle;
 
     public function __construct($id, $name, $hidden){
         $this -> id = $id;
         $this -> name = $name;
         $this -> video_ids = [];
         $this -> hidden = $hidden;
-        $this -> seconds = 0;
+        $this -> seconds = 18000;
 
         foreach ($this -> video_ids as $video){
             $this -> seconds .= $video -> seconds;
@@ -20,10 +21,27 @@ class Playlist{
     }
 
     private function calculate_length($path){
-        $this -> seconds = 0;
+        $this -> seconds = 18000;
         foreach ($this -> get_videos($path) as $video){
-            $this -> seconds .= $video -> seconds;
+            $this -> seconds = $this -> seconds + $video -> get_seconds();
         }
+    }
+
+    public function reorder_video($id, $direction){
+        $key = array_search($id, $this -> video_ids);
+        if ($direction === "up"){
+            if ($key === 0){
+                return false;
+            }
+            swap_array_values($this -> video_ids, $key, $key - 1);
+        }
+        else if ($direction === "down"){
+            if ($key === count($this -> video_ids) - 1){
+                return false;
+            }
+            swap_array_values($this -> video_ids, $key, $key + 1);
+        }
+        return true;
     }
 
     private function get_videos($path){
@@ -34,15 +52,15 @@ class Playlist{
         return $this -> id;
     }
 
-    public function add_videos($ids, $path){
-        array_merge($this -> video_ids, $ids);
+    public function add_video_ids($ids, $path){
+        $this -> video_ids = array_unique(array_merge($this -> video_ids, $ids));
         $this -> calculate_length($path);
     }
 
     public function remove_videos($ids, $path){
-        foreach ($this -> video_ids as $key => $id){
+        foreach ($this -> video_ids as $key => $_){
             foreach ($ids as $removing_id){
-                if ($id === $removing_id){
+                if ($this -> video_ids[$key] === $removing_id){
                     unset($this -> video_ids[$key]);
                 }
             }
@@ -66,21 +84,22 @@ class Playlist{
         return $response;
     }
 
-    public function to_list_item(){
+    public function to_list_item($path){
         $image = "";
         if (count($this -> video_ids) !== 0){
-            $image = '<img src="' . $this -> get_videos($path)[0] . '" width="120" height="90">';
+            $image = '<img id="' . $this -> id . '" src="' . $this -> get_videos($path)[0] -> thumbnail_url() . '" width="120" height="90">';
         }
-        return '<li class="handy playlist" id="' . $this -> id . '">' . $image . $this -> name . '<br>' . count($this -> video_ids) . " Videos<br>" . date('H:i:s', $this -> seconds) . '</li>';
+        return '<li class="handy playlist" id="' . $this -> id . '">' . $image . $this -> name . '<br><br>' . count($this -> video_ids) . " Videos<br><br>" . date('H:i:s', $this -> seconds) . '</li>';
     }
 
-    public function to_array(){
+    public function to_array($videos_path){
         return [
             "id" => $this -> id,
             "name" => $this -> name,
             "hidden" => $this -> hidden,
             "length" => date('H:i:s', $this -> seconds),
-            "video_ids" => $this -> video_ids
+            "video_ids" => $this -> video_ids,
+            "video_list_html" => $this -> to_video_list($videos_path)
         ];
     }
 }
@@ -94,11 +113,19 @@ class Video{
         $html = file_get_contents($url);
         $this -> id = explode('"', explode('<meta property="og:url" content="https://www.youtube.com/watch?v=', $html)[1])[0];
         $this -> title = explode('"', explode('<meta property="og:title" content="', $html)[1])[0];
-        $this -> seconds = explode('"', explode('length_seconds":"', $html)[1])[0];
+        $this -> seconds = 18000 + intval(explode('"', explode('length_seconds":"', $html)[1])[0]);
+    }
+
+    public function get_id(){
+        return $this -> id;
+    }
+
+    public function get_seconds(){
+        return $this -> seconds;
     }
 
     public function to_list_item(){
-        return '<li id="' . $this -> id . '"><img src="' . $this -> thumbnail_url() . '" width="120" height="90">' . $this -> title . '<br>' . date('i:s', $this -> seconds) . '</li>';
+        return '<li class="handy video" id="' . $this -> id . '"><img id="' . $this -> id . '" src="' . $this -> thumbnail_url() . '" width="120" height="90">' . $this -> title . '<br><br>' . date('H:i:s', $this -> seconds) . '</li>';
     }
 
     public function thumbnail_url(){
@@ -107,10 +134,6 @@ class Video{
 
     public function embed_url(){
         return "https://www.youtube.com/embed/" . $this -> id;
-    }
-
-    public function get_id(){
-        return $this -> id;
     }
 }
 
@@ -135,12 +158,13 @@ function get_videos($ids, $videos){
     }
     $returning_videos = [];
     foreach ($videos as $video){
-        foreach ($ids as $id){
+        foreach ($ids as $key => $id){
             if ($video -> get_id() === $id){
-                $returning_videos[] = $video;
+                $returning_videos[$key] = $video;
             }
         }
     }
+    ksort($returning_videos);
     return $returning_videos;
 }
 
@@ -163,6 +187,7 @@ function get_playlist_by_id($id, $playlists){
             return $playlist;
         }
     }
+    return NULL;
 }
 
 function get_playlist_by_name($name, $playlists){
@@ -174,6 +199,7 @@ function get_playlist_by_name($name, $playlists){
             return $playlist;
         }
     }
+    return NULL;
 }
 
 function get_public_playlists($playlists){
@@ -194,7 +220,7 @@ function video_in_playlist($id, $playlists){
         $playlists = load_data($playlists);
     }
     foreach ($playlists as $playlist){
-        if (array_key_exists($id, $playlist -> video_ids)){
+        if (in_array($id, $playlist -> video_ids)){
             return true;
         }
     }
@@ -231,6 +257,20 @@ function remove_objects($objects, $path, $data=NULL){
         }
     }
     save_data($data, $path);
+}
+
+function objects_to_ids($objects){
+    $ids = [];
+    foreach ($objects as $object){
+        $ids[] = $object -> get_id();
+    }
+    return $ids;
+}
+
+function swap_array_values(&$array, $first, $second){
+    $temp = $array[$first];
+    $array[$first] = $array[$second];
+    $array[$second] = $temp;
 }
 
 ?>

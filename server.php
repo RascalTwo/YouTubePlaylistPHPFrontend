@@ -12,6 +12,29 @@ function show_template($template_path, $page_title, $spreadsheet=""){
     include $config["templates"]["layout"];
 }
 
+function cleanup_videos($videos_path, $playlists_path){
+    $playlists = load_data($playlists_path);
+    $videos = load_data($videos_path);
+    foreach ($videos as $key => $_){
+        if (video_in_playlist($videos[$key] -> get_id(), $playlists)){
+            continue;
+        }
+        unset($videos[$key]);
+    }
+    foreach ($videos as $key_one => $_){
+        foreach ($videos as $key_two => $_){
+            if ($key_one === $key_two){
+                continue;
+            }
+            if ($videos[$key_one] -> get_id() !== $videos[$key_two] -> get_id()){
+                continue;
+            }
+            unset($videos[$key_two]);
+        }
+    }
+    save_data($videos, $videos_path);
+}
+
 $router -> get("/", function(){
     show_template("index", "Homepage");
     return;
@@ -27,13 +50,23 @@ $router -> get("/comics", function(){
     return;
 });
 
+$router -> get("/api/youtube_playlist/playlists", function(){
+    global $config;
+    $response = "";
+    foreach (get_public_playlists($config["database"]["playlists"]) as $playlist){
+        $response .= $playlist -> to_list_item($config["database"]["videos"]);
+    }
+    echo $response;
+});
+
 $router -> post("/api/youtube_playlist/get_playlist", function(){
     global $config;
     $json = [
         "message" => "",
         "playlist" => []
     ];
-    $found_playlist;
+
+    $found_playlist = NULL;
     switch ($_POST["by"]) {
         case "id":
             $found_playlist = get_playlist_by_id($_POST["id"], $config["database"]["playlists"]);
@@ -42,30 +75,21 @@ $router -> post("/api/youtube_playlist/get_playlist", function(){
             $found_playlist = get_playlist_by_name($_POST["name"], $config["database"]["playlists"]);
             break;
     }
-    if (count($found_playlist) === 0){
+    if (count($found_playlist) === NULL){
         $json["message"] = "Playlist not found.";
         $json["status"] = 404;
     }
     else{
         $json["message"] = "Playlist Loaded";
         $json["status"] = 200;
-        $json["playlist"] = $found_playlist -> to_array();
-        $json["videos_list_html"] = $found_playlist -> to_video_list($config["database"]["videos"]);
+        $json["playlist"] = $found_playlist -> to_array($config["database"]["videos"]);
     }
+
     echo json_encode($json);
 }, ["by" => true, "id" => false, "name" => false]);
 
-$router -> get("/api/youtube_playlist/playlists", function(){
-    global $config;
-    $response = "";
-    foreach (get_public_playlists($config["database"]["playlists"]) as $playlist){
-        $response .= $playlist -> to_list_item();
-    }
-    echo $response;
-});
-
 $router -> post("/api/youtube_playlist/add_video", function(){
-    error_log(print_r($_POST, true));
+    global $config;
     $videos = load_data($config["database"]["videos"]);
     if ($_POST["type"] === "list"){
         $new_videos = youtube_playlist_to_videos($_POST["id"]);
@@ -77,23 +101,23 @@ $router -> post("/api/youtube_playlist/add_video", function(){
 
     $playlists = load_data($config["database"]["playlists"]);
     foreach ($playlists as $key => $_){
-        if ($playlists[$key] -> get_id() != $_POST["id"]){
+        if ($playlists[$key] -> get_id() != $_POST["playlist"]){
             continue;
         }
-        $playlists[$key] -> add_videos($new_videos, $config["database"]["videos"]);
+        $playlists[$key] -> add_video_ids(objects_to_ids($new_videos), $config["database"]["videos"]);
     }
     save_data($playlists, $config["database"]["playlists"]);
 }, ["playlist" => true, "type" => true, "id" => true]);
 
 $router -> post("/api/youtube_playlist/remove_video", function(){
+    global $config;
     error_log(print_r($_POST, true));
-
     $playlists = load_data($config["database"]["playlists"]);
     foreach ($playlists as $key => $_){
-        if ($playlists[$key] -> get_id() != $_POST["id"]){
+        if ($playlists[$key] -> get_id() != $_POST["playlist"]){
             continue;
         }
-        $playlists[$key] -> remove_videos($new_videos, $config["database"]["videos"]);
+        $playlists[$key] -> remove_videos([$_POST["id"]], $config["database"]["videos"]);
     }
     save_data($playlists, $config["database"]["playlists"]);
 
@@ -101,6 +125,21 @@ $router -> post("/api/youtube_playlist/remove_video", function(){
         remove_objects([$_POST["id"]], $config["database"]["videos"]);
     }
 }, ["playlist" => true, "id" => true]);
+
+$router -> post("/api/youtube_playlist/reorder_video", function(){
+    global $config;
+    $change;
+    $playlists = load_data($config["database"]["playlists"]);
+    foreach ($playlists as $key => $_){
+        if ($playlists[$key] -> get_id() != $_POST["playlist"]){
+            continue;
+        }
+        $change = $playlists[$key] -> reorder_video($_POST["id"], $_POST["direction"]);
+    }
+    save_data($playlists, $config["database"]["playlists"]);
+
+    echo json_encode(["refresh" => $change]);
+}, ["playlist" => true, "id" => true, "direction" => true]);
 
 $router -> post("/api/youtube_playlist/add", function(){
     global $config;
@@ -117,6 +156,8 @@ $router -> post("/api/youtube_playlist/add", function(){
         "message" => "Playlist created."
     ]);
 }, ["name" => true, "hidden" => true]);
+
+cleanup_videos($config["database"]["videos"], $config["database"]["playlists"]);
 
 $router -> match();
 
