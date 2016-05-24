@@ -9,6 +9,27 @@ html, body {
     margin: 0;
 }
 
+#visible_controls{
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+#visible_controls > li{
+    display: block;
+    padding: 8px;
+    background-color: #101010;
+    float: left;
+}
+
+.handy{
+    cursor: pointer;
+}
+
+.toggleable_control{
+    display: none;
+}
+
 #content {
     color: white;
 }

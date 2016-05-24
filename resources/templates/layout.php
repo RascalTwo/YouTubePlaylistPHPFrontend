@@ -19,8 +19,6 @@
             </ul>
         </span>
         <br><br>
-        <span id="content">
-            <?php include $template_path; ?>
-        </span>
+        <?php include $template_path; ?>
     </body>
 </html>

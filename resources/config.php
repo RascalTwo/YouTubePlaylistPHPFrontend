@@ -5,12 +5,13 @@ $RESOURCES = realpath(__DIR__ . "/../resources");
 $config = [
     "class" => [
         "router" => $RESOURCES . "/libraries/router.php",
-        "youtube_playlist" => $RESOURCES . "/libraries/youtube_playlist.php",
+        "youtube" => $RESOURCES . "/libraries/youtube.php",
         "utility" => $RESOURCES . "/libraries/utility.php"
     ],
     "database" => [
         "ids" => $RESOURCES . "/database/ids.db",
-        "youtube_playlists" => $RESOURCES . "/database/youtube_playlists.db"
+        "videos" => $RESOURCES . "/database/videos.db",
+        "playlists" => $RESOURCES . "/database/playlists.db"
     ],
     "path" => [
         "assets" => $DOCUMENT_ROOT . "/assets"
