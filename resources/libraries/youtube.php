@@ -19,27 +19,35 @@ class Playlist{
         }
     }
 
-    private function calculate_length(){
+    private function calculate_length($path){
         $this -> seconds = 0;
-        foreach ($video_ids as $video){
+        foreach ($this -> get_videos($path) as $video){
             $this -> seconds .= $video -> seconds;
         }
     }
 
-    public function add_videos($ids){
-        array_merge($this -> video_ids, $ids);
-        $this -> calculate_length();
+    private function get_videos($path){
+        return get_videos($this -> video_ids, $path);
     }
 
-    public function remove_videos($ids){
+    public function get_id(){
+        return $this -> id;
+    }
+
+    public function add_videos($ids, $path){
+        array_merge($this -> video_ids, $ids);
+        $this -> calculate_length($path);
+    }
+
+    public function remove_videos($ids, $path){
         foreach ($this -> video_ids as $key => $id){
             foreach ($ids as $removing_id){
                 if ($id === $removing_id){
-                    unserialize($this -> video_ids[$key]);
+                    unset($this -> video_ids[$key]);
                 }
             }
         }
-        $this -> calculate_length();
+        $this -> calculate_length($path);
     }
 
     public function to_playlist_info(){
@@ -48,10 +56,6 @@ class Playlist{
         $count = count($this -> video_ids);
         $length = date('H:i:s', $this -> seconds);
         return "<tr><td>ID</td><td>$name</td></tr><tr><td>ID</td><td>$id</td></tr><tr><td>Video Count</td><td>$count</td></tr><tr><td>Length</td><td>$length</td></tr>";
-    }
-
-    private function get_videos($path){
-        return get_videos($this -> video_ids, $path);
     }
 
     public function to_video_list($path){
@@ -67,24 +71,23 @@ class Playlist{
         if (count($this -> video_ids) !== 0){
             $image = '<img src="' . $this -> get_videos($path)[0] . '" width="120" height="90">';
         }
-        return '<li id="' . $this -> id . '">' . $image . $this -> name . '<br>' . count($this -> video_ids) . " Videos<br>" . date('H:i:s', $this -> seconds) . '</li>';
+        return '<li class="handy playlist" id="' . $this -> id . '">' . $image . $this -> name . '<br>' . count($this -> video_ids) . " Videos<br>" . date('H:i:s', $this -> seconds) . '</li>';
     }
 
-    public function to_json(){
-        $json = [
+    public function to_array(){
+        return [
             "id" => $this -> id,
             "name" => $this -> name,
             "hidden" => $this -> hidden,
             "length" => date('H:i:s', $this -> seconds),
             "video_ids" => $this -> video_ids
         ];
-        return json_encode($json);
     }
 }
 
 class Video{
     private $id;
-    private $title;
+    public $title;
     private $seconds;
 
     public function __construct($url){
@@ -126,9 +129,9 @@ function save_data($data, $path){
     file_put_contents($path, serialize($data));
 }
 
-function get_videos($ids, $videos=NULL){
+function get_videos($ids, $videos){
     if ((!is_array($videos))){
-        $videos = load_videos($videos);
+        $videos = load_data($videos);
     }
     $returning_videos = [];
     foreach ($videos as $video){
@@ -141,18 +144,39 @@ function get_videos($ids, $videos=NULL){
     return $returning_videos;
 }
 
-function get_playlist($id, $playlists=NULL){
+function youtube_playlist_to_videos($id){
+    $html = file_get_contents("https://www.youtube.com/playlist?list=" . $id);
+    $html = explode('class="pl-video yt-uix-tile "', $html);
+    $videos = [];
+    foreach ($html as $video_html){
+        $videos[] = new Video("https://www.youtube.com/watch?v=" . explode('"', explode('data-video-id="', $video_html)[1])[0]);
+    }
+    return $videos;
+}
+
+function get_playlist_by_id($id, $playlists){
     if ((!is_array($playlists))){
         $playlists = load_data($playlists);
     }
     foreach ($playlists as $playlist){
-        if ($playlist -> id === $id){
+        if ($playlist -> get_id() == $id){
             return $playlist;
         }
     }
 }
 
-function get_public_playlists($playlists=NULL){
+function get_playlist_by_name($name, $playlists){
+    if ((!is_array($playlists))){
+        $playlists = load_data($playlists);
+    }
+    foreach ($playlists as $playlist){
+        if (strtolower($playlist -> name) === strtolower($name)){
+            return $playlist;
+        }
+    }
+}
+
+function get_public_playlists($playlists){
     if ((!is_array($playlists))){
         $playlists = load_data($playlists);
     }
@@ -165,11 +189,47 @@ function get_public_playlists($playlists=NULL){
     return $returning_playlists;
 }
 
-function add_object($object, $path, $data=NULL){
+function video_in_playlist($id, $playlists){
+    if ((!is_array($playlists))){
+        $playlists = load_data($playlists);
+    }
+    foreach ($playlists as $playlist){
+        if (array_key_exists($id, $playlist -> video_ids)){
+            return true;
+        }
+    }
+    return false;
+}
+
+function add_objects($objects, $path, $data=NULL){
     if ((!is_array($data))){
         $data = load_data($path);
     }
-    $data[] = $object;
+    foreach ($objects as $object){
+        $data[] = $object;
+    }
+    save_data($data, $path);
+}
+
+function remove_objects($objects, $path, $data=NULL){
+    if ((!is_array($data))){
+        $data = load_data($path);
+    }
+    foreach ($data as $data_key => $_){
+        foreach ($objects as $object_key => $value){
+            if (is_object($value)){
+                if ($data[$data_key] -> get_id() !== $objects[$object_key] -> get_id()){
+                    continue;
+                }
+            }
+            else{
+                if ($data[$data_key] -> get_id() != $value){
+                    continue;
+                }
+            }
+            unset($data[$data_key]);
+        }
+    }
     save_data($data, $path);
 }
 
