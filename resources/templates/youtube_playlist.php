@@ -286,7 +286,7 @@
             this.value = "Hide Video Controls";
         })
 
-        $('html').on('change', 'input[name=shuffle]'function(){
+        $('html').on('change', 'input[name=shuffle]', function(){
 
         });
     });
