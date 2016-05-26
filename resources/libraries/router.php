@@ -75,11 +75,11 @@ class Router{
             return $_POST;
         }
         foreach ($excepted_params as $param => $required){
-            if ($required){
+            if ($required || array_key_exists($param, $_POST)){
                 $_POST[$param] = strip_tags(filter_var($_POST[$param], FILTER_SANITIZE_STRING));
-            }
-            elseif (array_key_exists($param, $_POST)){
-                $_POST[$param] = strip_tags(filter_var($_POST[$param], FILTER_SANITIZE_STRING));
+                if (strtolower($_POST[$param]) === "true" || strtolower($_POST[$param]) === "false"){
+                    $_POST[$param] = (strtolower($_POST[$param]) === "true");
+                }
             }
         }
         return $_POST;

@@ -19,6 +19,10 @@ Powered by PHP.
 
 # Technical TODO
 
+Finish playlist deletion feature.
+Finish playlist export/import feature.
+Add per-video volume values.
+
 Replace checkboxes with sliders:
 
 <label class="switch">

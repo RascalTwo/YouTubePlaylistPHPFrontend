@@ -9,6 +9,7 @@
                 <li class="select_control handy">New</li>
                 <li class="select_control handy">Load</li>
                 <li class="select_control handy">Edit</li>
+                <li class="select_control handy">Advanced</li>
             </ul>
             <br><br>
             <span class="toggleable_control" id="new-controls">
@@ -67,6 +68,21 @@
                     </tbody>
                 </table>
             </span>
+            <span class="toggleable_control" id="advanced-controls">
+                <br>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td><input type="button" id="import_button" value="Import"></td>
+                            <td><input type="text" id="import_data"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="button" id="import_button" value="Export"></td>
+                            <td><input type="text" id="export_data"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </span>
         </div>
         <div class="full_page split_column" id="playlist_info">
             <table>
@@ -110,14 +126,17 @@
         player: undefined,
         played: {},
         playing: undefined,
-        controls: false
+        controls: {
+            video: false,
+            playlist: false
+        }
     }
 
     function loadPlaylist(response){
         if (response.status !== 200){
             return false;
         }
-        if (state.playlist.id !== response.playlist.id){
+        if (state.playlist.id !== response.playlist.id || state.playlist.video_ids.length !== response.playlist.video_ids.length){
             state.played = {};
             for (var i = 0; i < response.playlist.video_ids.length; i++){
                 state.played[response.playlist.video_ids[i]] = 0;
@@ -127,21 +146,20 @@
         $("#video_list").html(state.playlist.video_list_html);
         $("#playlist_name").html(state.playlist.name);
         $("#rename_playlist").val(state.playlist.name);
-        $("#shuffle").prop("checked", state.playlist.shuffle === "true");
-        $("#changed_visibility").prop("checked", !state.playlist.hidden);
+        $("#shuffle").prop("checked", state.playlist.shuffle);
+        $("#current_visibility").prop("checked", !state.playlist.hidden);
         $("#playlist_count").html(state.playlist.video_ids.length);
         $("#playlist_length").html(state.playlist.length);
         $("#playlist_info_table").show();
-        if (state.controls){
-            appendControls();
+        if (state.controls.video){
+            appendVideoControls();
         }
         return true;
     }
 
     function loadVideo(id){
-        $("#video_wrapper").replaceWith('<div id="video_wrapper"></div>');
         state.playing = id;
-        state.player = new YT.Player('video_wrapper', {
+        var arguments = {
             width: 640,
             height: 320,
             videoId: id,
@@ -149,8 +167,14 @@
                 "onStateChange": playerStateChange,
                 "onReady": playerReady
             }
-        });
-        player.playVideo();
+        }
+        if (state.player === undefined){
+            $("#video_wrapper").replaceWith('<div id="video_wrapper"></div>');
+            state.player = new YT.Player('video_wrapper', arguments);
+        }
+        else{
+            state.player.loadVideoById(arguments);
+        }
     }
 
     function getNextVideo(){
@@ -159,14 +183,13 @@
             1: []
         };
         var ids = Object.keys(state.played);
-        for (var i = 0; i < state.played.length; i++){
-            counts[state.played[i]].push(ids[i]);
+        for (var i = 0; i < ids.length; i++){
+            counts[state.played[ids[i]]].push(ids[i]);
         }
-        console.log(counts)
         if (counts[0].length !== 0){
             if (state.playlist.shuffle){
                 console.log("Getting random not-played video");
-                return state.playlist.video_ids[counts[0][Math.floor(Math.random() * counts)]];
+                return counts[0][Math.floor(Math.random() * counts[0].length)];
             }
             for (var i = 0; i < state.playlist.video_ids.length; i++){
                 if (state.played[ids[i]] === 1){
@@ -176,31 +199,37 @@
                 return ids[i];
             }
         }
-        for (var i = 0; i < state.played.length; i++){
-            state.playlist.played[ids[i]] = 0;
+        console.log("All videos have been played.")
+        for (var i = 0; i < ids.length; i++){
+            state.played[ids[i]] = 0;
         }
         if (state.playlist.shuffle){
+            console.log("Getting random not-played video");
             return ids[Math.floor(Math.random() * ids.length)];
         }
+        console.log("Getting first video");
         return ids[0];
     }
 
     function playerStateChange(event){
-        console.log(event);
         if (event.data === 0){
             message("Loading next video...");
-            state.played[state.playing]++;
+            state.played[state.playing] = 1;
             loadVideo(getNextVideo());
         }
     }
 
     function playerReady(event){
         message("Video loaded.");
+        state.player.playVideo();
     }
 
     function loadPlaylistList(){
         $.get("api/youtube_playlist/playlists", function(response){
             $("#playlist_list").html(response);
+            if (state.controls.playlist){
+                appendPlaylistControls();
+            }
         });
     }
 
@@ -208,12 +237,19 @@
         $("#response_message").html(message);
     }
 
-    function appendControls(){
+    function appendVideoControls(){
         $('#video_list > li').each(function(){
             $(this).append('<br>');
             $(this).append('<img class="handy" id="' + this.id + '-remove" src="red_x.png" width="24" height="24">');
             $(this).append('<img class="handy" id="' + this.id + '-up-reorder" src="up_arrow.png" width="24" height="24">');
             $(this).append('<img class="handy" id="' + this.id + '-down-reorder" src="down_arrow.png" width="24" height="24">');
+        });
+    }
+
+    function appendPlaylistControls(){
+        $('#playlist_list > li').each(function(){
+            $(this).append('<br>');
+            $(this).append('<img class="handy" id="' + this.id + '-delete" src="red_x.png" width="24" height="24">');
         });
     }
 
@@ -230,6 +266,7 @@
         loadPlaylistList();
 
         $('html').on('click', '.playlist', function(event){
+            event.stopPropagation();
             message("Loading playlist...")
             $.post("api/youtube_playlist/get_playlist", {by: "id", "id": event.target.id}, function(response){
                 if (!loadPlaylist(JSON.parse(response))){
@@ -245,14 +282,16 @@
         });
 
         $('html').on('click', '.video', function(event){
+            event.stopPropagation();
             message("Loading video...");
             loadVideo(event.target.id);
         });
 
         $('html').on('click', 'img[id$="-remove"]', function(event){
-            message("Removing video...");
             event.stopPropagation();
-            $.post("api/youtube_playlist/remove_video", {playlist: state.playlist.id, id: event.target.id.split("-")[0]}, function(response){
+            message("Removing video...");
+            var id = event.target.id.split("-").slice(0, -1).join("-");
+            $.post("api/youtube_playlist/remove_video", {playlist: state.playlist.id, id: id}, function(response){
                 loadPlaylistList();
                 $.post("api/youtube_playlist/get_playlist", {by: "id", "id": state.playlist.id}, function(response){
                     loadPlaylist(JSON.parse(response));
@@ -261,11 +300,22 @@
             });
         });
 
-        $('html').on('click', 'img[id$="-reorder"]', function(event){
-            message("Changing video order...");
+        $('html').on('click', 'img[id$="-delete"]', function(event){
             event.stopPropagation();
-            var data = event.target.id.split("-")
-            $.post("api/youtube_playlist/reorder_video", {playlist: state.playlist.id, id: data[0], direction: data[1]}, function(response){
+            message("Deleting playlist...");
+            $.post("api/youtube_playlist/delete_playlist", {id: event.target.id.split("-")[0]}, function(response){
+                loadPlaylistList();
+                message("Playlist deleted.");
+            });
+        });
+
+        $('html').on('click', 'img[id$="-reorder"]', function(event){
+            event.stopPropagation();
+            message("Changing video order...");
+            var data = event.target.id.split("-");
+            var id = data.slice(0, data.length - 2).join("-");
+            var dir = data.slice(data.length - 2, data.length - 1).join("");
+            $.post("api/youtube_playlist/reorder_video", {playlist: state.playlist.id, id: id, direction: dir}, function(response){
                 if (!JSON.parse(response).refresh){
                     message("Video already at end/beginning of playlist.");
                     return;
@@ -368,17 +418,31 @@
         });
 
         $('#video_controls_toggle').click(function(){
-            if (state.controls){
-                state.controls = false;
+            if (state.controls.video){
+                state.controls.video = false;
                 this.value = "Show Video Controls";
                 $("#video_list").html(state.playlist.video_list_html);
-                message("Exited video edit mode.");
+                message("Exited Video edit mode.");
                 return;
             }
-            state.controls = true;
-            appendControls();
+            state.controls.video = true;
+            appendVideoControls();
             this.value = "Hide Video Controls";
-            message("Entered video edit mode.");
+            message("Entered Video edit mode.");
+        })
+
+        $('#playlist_controls_toggle').click(function(){
+            if (state.controls.playlist){
+                state.controls.playlist = false;
+                this.value = "Show Playlist Controls";
+                loadPlaylistList();
+                message("Exited Playlist edit mode.");
+                return;
+            }
+            state.controls.playlist = true;
+            appendPlaylistControls();
+            this.value = "Hide Playlist Controls";
+            message("Entered Playlist edit mode.");
         })
 
         $('#shuffle').change(function(){

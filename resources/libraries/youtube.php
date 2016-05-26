@@ -65,6 +65,7 @@ class Playlist{
                 }
             }
         }
+        $this -> video_ids = array_values($this -> video_ids);
         $this -> calculate_length($path);
     }
 
@@ -95,6 +96,14 @@ class Playlist{
             "video_list_html" => $this -> to_video_list($videos_path)
         ];
     }
+
+    public static function import(){
+
+    }
+
+    public function export(){
+
+    }
 }
 
 class Video{
@@ -106,7 +115,8 @@ class Video{
         $html = file_get_contents($url);
         $this -> id = explode('"', explode('<meta property="og:url" content="https://www.youtube.com/watch?v=', $html)[1])[0];
         $this -> title = explode('"', explode('<meta property="og:title" content="', $html)[1])[0];
-        $this -> seconds = intval(explode('"', explode('length_seconds":"', $html)[1])[0]);
+        $raw_time = explode('M', explode('"', explode('<meta itemprop="duration" content="PT', $html)[1])[0]);
+        $this -> seconds = intval($raw_time[0]) * 60 + intval(explode('S', $raw_time[1])[0]);
     }
 
     public function get_id(){
@@ -122,7 +132,7 @@ class Video{
     }
 
     public function thumbnail_url(){
-        return "https://i.ytimg.com/vi/" . $this -> id . "/maxresdefault.jpg";
+        return "https://i.ytimg.com/vi/" . $this -> id . "/hqdefault.jpg";
     }
 
     public function embed_url(){
@@ -164,6 +174,7 @@ function get_videos($ids, $videos){
 function youtube_playlist_to_videos($id){
     $html = file_get_contents("https://www.youtube.com/playlist?list=" . $id);
     $html = explode('class="pl-video yt-uix-tile "', $html);
+    array_shift($html);
     $videos = [];
     foreach ($html as $video_html){
         $videos[] = new Video("https://www.youtube.com/watch?v=" . explode('"', explode('data-video-id="', $video_html)[1])[0]);
