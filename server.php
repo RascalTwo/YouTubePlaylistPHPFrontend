@@ -76,11 +76,9 @@ $router -> post("/api/youtube_playlist/get_playlist", function(){
             break;
     }
     if (count($found_playlist) === NULL){
-        $json["message"] = "Playlist not found.";
         $json["status"] = 404;
     }
     else{
-        $json["message"] = "Playlist Loaded";
         $json["status"] = 200;
         $json["playlist"] = $found_playlist -> to_array($config["database"]["videos"]);
     }
@@ -111,7 +109,6 @@ $router -> post("/api/youtube_playlist/add_video", function(){
 
 $router -> post("/api/youtube_playlist/remove_video", function(){
     global $config;
-    error_log(print_r($_POST, true));
     $playlists = load_data($config["database"]["playlists"]);
     foreach ($playlists as $key => $_){
         if ($playlists[$key] -> get_id() != $_POST["playlist"]){
@@ -156,6 +153,22 @@ $router -> post("/api/youtube_playlist/add", function(){
         "message" => "Playlist created."
     ]);
 }, ["name" => true, "hidden" => true]);
+
+$router -> post("/api/youtube_playlist/edit_playlist", function(){
+    global $config;
+    $playlists = load_data($config["database"]["playlists"]);
+    foreach ($playlists as $key => $_){
+        if ($playlists[$key] -> get_id() != $_POST["playlist"]){
+            continue;
+        }
+        foreach ($_POST as $post_key => $value){
+            if (property_exists($playlists[$key], $post_key)){
+                $playlists[$key] -> {$post_key} = $value;
+            }
+        }
+    }
+    save_data($playlists, $config["database"]["playlists"]);
+}, ["playlist" => true, "shuffle" => false, "hidden" => false, "name" => false]);
 
 cleanup_videos($config["database"]["videos"], $config["database"]["playlists"]);
 

@@ -1,7 +1,10 @@
+/* General stylings */
+
 html, body {
     background-color: #101010;
     height:100vh;
     max-height:100%;
+    overflow: hidden;
 }
 
 * {
@@ -9,39 +12,51 @@ html, body {
     margin: 0;
 }
 
-#visible_controls{
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
+table{
+    background-color: #1E1E1E;
+    margin: 10px 0px 10px 0px;
 }
 
-#visible_controls > li{
-    display: block;
-    padding: 8px;
-    background-color: #101010;
+table, tr, td{
+    padding: 6px;
+    border: 2px solid #2E2E2E;
+    border-collapse: collapse;
+}
+
+img {
+    padding: 5px;
     float: left;
+}
+
+div {
+    padding: 2px;
+    margin: 2px;
+}
+
+.flexbox {
+    display: flex;
 }
 
 .handy{
     cursor: pointer;
 }
 
-.toggleable_control{
-    display: none;
-}
-
 #content {
     color: white;
 }
 
-iframe {
-    max-width: 640px;
-    max-height: 320px;
+/* Scrollbar styling */
+
+::-webkit-scrollbar {
+    width: 15px;
 }
 
-.flexbox {
-    display: flex;
+::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 1);
 }
+
+/* List/Column styling */
 
 #video_list, #playlist_list {
     display: flex;
@@ -53,8 +68,24 @@ iframe {
     overflow-y: scroll;
 }
 
-#controls {
-    float:left;
+#video_list > li, #playlist_list > li {
+    flex-grow: 1;
+    padding: 5px;
+    margin: 5px;
+    border: 1px solid #3E3E3E;
+}
+
+#visible_controls{
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+#visible_controls > li{
+    display: block;
+    padding: 8px;
+    background-color: #1E1E1E;
+    float: left;
 }
 
 .split_column {
@@ -68,19 +99,32 @@ iframe {
     flex-grow: 1;
 }
 
-img {
-    padding: 5px;
+/* */
+
+#video_wrapper{
+    min-width: 640px;
+    min-height:320px;
+    background-color: black;
+}
+
+#playlist_info{
+    width: auto;
+    float: right;
+}
+
+#playlist_info_table{
+    display: none;
+}
+
+.toggleable_control{
+    display: none;
+}
+
+iframe {
+    max-width: 640px;
+    max-height: 320px;
+}
+
+#controls {
     float:left;
-}
-
-#video_list > li, #playlist_list > li {
-    flex-grow: 1;
-    padding: 5px;
-    margin: 5px;
-    border: 1px solid #3E3E3E;
-}
-
-div {
-    padding: 2px;
-    margin: 2px;
 }

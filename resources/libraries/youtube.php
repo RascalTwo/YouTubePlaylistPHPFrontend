@@ -2,10 +2,10 @@
 
 class Playlist{
     private $id;
+    private $seconds;
     public $name;
     public $video_ids;
     public $hidden;
-    public $seconds;
     public $shuffle;
 
     public function __construct($id, $name, $hidden){
@@ -68,14 +68,6 @@ class Playlist{
         $this -> calculate_length($path);
     }
 
-    public function to_playlist_info(){
-        $name = $this -> name;
-        $id = $this -> id;
-        $count = count($this -> video_ids);
-        $length = date('H:i:s', $this -> seconds);
-        return "<tr><td>ID</td><td>$name</td></tr><tr><td>ID</td><td>$id</td></tr><tr><td>Video Count</td><td>$count</td></tr><tr><td>Length</td><td>$length</td></tr>";
-    }
-
     public function to_video_list($path){
         $response = '';
         foreach ($this -> get_videos($path) as $video){
@@ -97,6 +89,7 @@ class Playlist{
             "id" => $this -> id,
             "name" => $this -> name,
             "hidden" => $this -> hidden,
+            "shuffle" => $this -> shuffle,
             "length" => date('H:i:s', $this -> seconds),
             "video_ids" => $this -> video_ids,
             "video_list_html" => $this -> to_video_list($videos_path)
@@ -113,7 +106,7 @@ class Video{
         $html = file_get_contents($url);
         $this -> id = explode('"', explode('<meta property="og:url" content="https://www.youtube.com/watch?v=', $html)[1])[0];
         $this -> title = explode('"', explode('<meta property="og:title" content="', $html)[1])[0];
-        $this -> seconds = 18000 + intval(explode('"', explode('length_seconds":"', $html)[1])[0]);
+        $this -> seconds = intval(explode('"', explode('length_seconds":"', $html)[1])[0]);
     }
 
     public function get_id(){
@@ -125,7 +118,7 @@ class Video{
     }
 
     public function to_list_item(){
-        return '<li class="handy video" id="' . $this -> id . '"><img id="' . $this -> id . '" src="' . $this -> thumbnail_url() . '" width="120" height="90">' . $this -> title . '<br><br>' . date('H:i:s', $this -> seconds) . '</li>';
+        return '<li class="handy video" id="' . $this -> id . '"><img id="' . $this -> id . '" src="' . $this -> thumbnail_url() . '" width="120" height="90">' . $this -> title . '<br><br>' . date('H:i:s', $this -> seconds + 18000) . '</li>';
     }
 
     public function thumbnail_url(){
