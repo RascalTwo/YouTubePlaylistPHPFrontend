@@ -19,9 +19,11 @@ Powered by PHP.
 
 # Technical TODO
 
-Finish playlist deletion feature.
-Finish playlist export/import feature.
-Add per-video volume values.
+- Finish playlist deletion feature.
+- Finish playlist export/import feature.
+- Add per-video volume values.
+- Add per-video play ranges.
+    - Start time and End time.
 
 Replace checkboxes with sliders:
 
