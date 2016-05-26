@@ -3,7 +3,13 @@
         <script src="https://www.youtube.com/iframe_api"></script>
         <div id="video_wrapper">
         </div>
-        <br>
+        <ul id="visible_controls">
+            <li id="play_pause_toggle" class="handy"><img src="play_disabled.png" width="32" height="32"></li>
+            <li id="previous_video" class="handy"><img class="rotate-180" src="arrow.png" width="32" height="32"></li>
+            <li id="next_video" class="handy"><img src="arrow.png" width="32" height="32"></li>
+            <li id="replay_toggle" class="handy"><img src="replay_false.png" width="32" height="32"></li>
+        </ul>
+        <br><br><br><br>
         <div class="full_page split_column" id="controls">
             <ul id="visible_controls">
                 <li class="select_control handy">New</li>
@@ -126,6 +132,7 @@
         player: undefined,
         played: {},
         playing: undefined,
+        replay: false,
         controls: {
             video: false,
             playlist: false
@@ -158,6 +165,10 @@
     }
 
     function loadVideo(id){
+        if (!state.replay && state.playing === id){
+            loadVideo(getNextVideo());
+        }
+        $("#play_pause_toggle").children()[0].src = "play_disabled.png";
         state.playing = id;
         var arguments = {
             width: 640,
@@ -178,6 +189,9 @@
     }
 
     function getNextVideo(){
+        if (state.replay){
+            return state.playing;
+        }
         var counts = {
             0: [],
             1: []
@@ -217,11 +231,18 @@
             state.played[state.playing] = 1;
             loadVideo(getNextVideo());
         }
+        else if (event.data === 1){
+            $("#play_pause_toggle").children()[0].src = "pause.png";
+        }
+        else if (event.data === 2){
+            $("#play_pause_toggle").children()[0].src = "play.png";
+        }
     }
 
     function playerReady(event){
         message("Video loaded.");
         state.player.playVideo();
+        $("#play_pause_toggle").children()[0].src = "pause.png";
     }
 
     function loadPlaylistList(){
@@ -241,8 +262,8 @@
         $('#video_list > li').each(function(){
             $(this).append('<br>');
             $(this).append('<img class="handy" id="' + this.id + '-remove" src="red_x.png" width="24" height="24">');
-            $(this).append('<img class="handy" id="' + this.id + '-up-reorder" src="up_arrow.png" width="24" height="24">');
-            $(this).append('<img class="handy" id="' + this.id + '-down-reorder" src="down_arrow.png" width="24" height="24">');
+            $(this).append('<img class="rotate-270 handy" id="' + this.id + '-up-reorder" src="arrow.png" width="24" height="24">');
+            $(this).append('<img class="rotate-90 handy" id="' + this.id + '-down-reorder" src="arrow.png" width="24" height="24">');
         });
     }
 
@@ -370,6 +391,7 @@
         });
 
         $('.select_control').each(function(){
+            event.stopPropagation();
             var target = this.innerHTML.toLowerCase();
             $(this).click(function(){
                 $(".toggleable_control").each(function(){
@@ -388,6 +410,7 @@
         });
 
         $('#new_playlist_button').click(function(){
+            event.stopPropagation();
             var post_data = {
                 name: $("#new_playlist_name").val(),
                 hidden: !$("#new_visibility").is(":checked")
@@ -403,6 +426,7 @@
         });
 
         $('#load_playlist_button').click(function(){
+            event.stopPropagation();
             var name = $("#load_playlist_name").val();
             $.post("api/youtube_playlist/get_playlist", {by: "name", "name": name}, function(response){
                 if (!loadPlaylist(JSON.parse(response))){
@@ -418,6 +442,7 @@
         });
 
         $('#video_controls_toggle').click(function(){
+            event.stopPropagation();
             if (state.controls.video){
                 state.controls.video = false;
                 this.value = "Show Video Controls";
@@ -432,6 +457,7 @@
         })
 
         $('#playlist_controls_toggle').click(function(){
+            event.stopPropagation();
             if (state.controls.playlist){
                 state.controls.playlist = false;
                 this.value = "Show Playlist Controls";
@@ -446,6 +472,7 @@
         })
 
         $('#shuffle').change(function(){
+            event.stopPropagation();
             var val = event.target.checked
             message("Setting Shuffle to " + val);
             $.post("api/youtube_playlist/edit_playlist", {playlist: state.playlist.id, shuffle: val}, function(response){
@@ -457,6 +484,7 @@
         });
 
         $('#current_visibility').change(function(){
+            event.stopPropagation();
             var new_vis = (event.target.checked ? "Public" : "Hidden");
             message("Setting visibility to " + new_vis);
             $.post("api/youtube_playlist/edit_playlist", {playlist: state.playlist.id, hidden: !event.target.checked}, function(response){
@@ -467,6 +495,27 @@
             });
         });
 
+        $("#replay_toggle").click(function(){
+            event.stopPropagation();
+            state.replay = !state.replay;
+            this.children[0].src = "replay_" + state.replay + ".png";
+        });
+
+        $("#play_pause_toggle").click(function(){
+            event.stopPropagation();
+            this.children[0].src = (state.player.getPlayerState() === 2 ? "pause" : "play") + ".png"
+            if (state.player.getPlayerState() === 2){
+                state.player.playVideo();
+            }
+            else if (state.player.getPlayerState() === 1){
+                state.player.pauseVideo();
+            }
+        });
+
         /* Rename button */
+        /* Next video button */
+        /* Previous video button */
+        /* Import button */
+        /* Export button */
     });
 </script>

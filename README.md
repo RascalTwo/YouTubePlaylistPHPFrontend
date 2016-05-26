@@ -24,6 +24,8 @@ Powered by PHP.
 - Add per-video volume values.
 - Add per-video play ranges.
     - Start time and End time.
+- Finish next/previous video buttons.
+    - Maybe disable actual youtube controls?
 
 Replace checkboxes with sliders:
 
