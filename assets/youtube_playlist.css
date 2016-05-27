@@ -1,7 +1,7 @@
 /* General stylings */
 
 html, body {
-    background-color: #101010;
+    background-color: #0E0E0E;
     height:100vh;
     max-height:100%;
     overflow: hidden;
@@ -21,6 +21,14 @@ table, tr, td{
     padding: 6px;
     border: 2px solid #2E2E2E;
     border-collapse: collapse;
+}
+
+li{
+    background-color: #2E2E2E;
+}
+
+li:hover, td:hover{
+    background-color: #4E4E4E;
 }
 
 img {
@@ -98,6 +106,9 @@ div {
     padding: 8px;
     background-color: #1E1E1E;
     float: left;
+}
+#visible_controls > li:hover{
+    background-color: #4E4E4E;
 }
 
 .split_column {

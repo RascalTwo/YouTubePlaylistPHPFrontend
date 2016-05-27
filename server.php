@@ -75,7 +75,7 @@ $router -> post("/api/youtube_playlist/get_playlist", function(){
             $found_playlist = get_playlist_by_name($_POST["name"], $config["database"]["playlists"]);
             break;
     }
-    if (count($found_playlist) === NULL){
+    if ($found_playlist === NULL){
         $json["status"] = 404;
     }
     else{

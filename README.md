@@ -7,15 +7,12 @@ Powered by PHP.
 # TODO
 
 - Youtube Playlist.
-    - Save playlists.
-    - Have public and private playlists.
-        - Private playlists loadable via entering the playlist name.
-        - Private playlists editable via entering password.
-    - Playlists contain videos, playable on repeat/shuffle.
-    - Playlist videos can be re-ordered.
+    - Private playlists editable via entering password.
 - Comics
     - Random comic
     - Latest comic
+- Data conversion/visualization.
+    - Convert data to other data types as typed.
 
 # Technical TODO
 
@@ -24,8 +21,10 @@ Powered by PHP.
 - Add per-video volume values.
 - Add per-video play ranges.
     - Start time and End time.
-- Finish next/previous video buttons.
-    - Maybe disable actual youtube controls?
+- Maybe disable actual youtube controls?
+- Second video column toggleable between public playlists and recommended videos.
+- Add video grouping.
+    - Could be used to prevent two videos with similar sounds from being played back to back.
 
 Replace checkboxes with sliders:
 

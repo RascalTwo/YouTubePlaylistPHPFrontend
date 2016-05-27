@@ -5,8 +5,8 @@
         </div>
         <ul id="visible_controls">
             <li id="play_pause_toggle" class="handy"><img src="play_disabled.png" width="32" height="32"></li>
-            <li id="previous_video" class="handy"><img class="rotate-180" src="arrow.png" width="32" height="32"></li>
-            <li id="next_video" class="handy"><img src="arrow.png" width="32" height="32"></li>
+            <li id="previous_video" class="handy"><img class="rotate-180" src="arrow_disabled.png" width="32" height="32"></li>
+            <li id="next_video" class="handy"><img src="arrow_disabled.png" width="32" height="32"></li>
             <li id="replay_toggle" class="handy"><img src="replay_false.png" width="32" height="32"></li>
         </ul>
         <br><br><br><br>
@@ -131,6 +131,7 @@
         },
         player: undefined,
         played: {},
+        previous: undefined,
         playing: undefined,
         replay: false,
         controls: {
@@ -148,6 +149,11 @@
             for (var i = 0; i < response.playlist.video_ids.length; i++){
                 state.played[response.playlist.video_ids[i]] = 0;
             }
+        }
+        if (state.playlist.id === undefined){
+            $("li[id$='_video']").each(function(){
+                this.children[0].src = "arrow.png";
+            });
         }
         state.playlist = response.playlist;
         $("#video_list").html(state.playlist.video_list_html);
@@ -169,6 +175,7 @@
             loadVideo(getNextVideo());
         }
         $("#play_pause_toggle").children()[0].src = "play_disabled.png";
+        state.previous = state.playing;
         state.playing = id;
         var arguments = {
             width: 640,
@@ -259,11 +266,16 @@
     }
 
     function appendVideoControls(){
-        $('#video_list > li').each(function(){
+        var listItems = $('#video_list > li');
+        listItems.each(function(index){
             $(this).append('<br>');
             $(this).append('<img class="handy" id="' + this.id + '-remove" src="red_x.png" width="24" height="24">');
-            $(this).append('<img class="rotate-270 handy" id="' + this.id + '-up-reorder" src="arrow.png" width="24" height="24">');
-            $(this).append('<img class="rotate-90 handy" id="' + this.id + '-down-reorder" src="arrow.png" width="24" height="24">');
+            if (index !== 0){
+                $(this).append('<img class="rotate-270 handy" id="' + this.id + '-up-reorder" src="arrow.png" width="24" height="24">');
+            }
+            if (index !== listItems.length - 1){
+                $(this).append('<img class="rotate-90 handy" id="' + this.id + '-down-reorder" src="arrow.png" width="24" height="24">');
+            }
         });
     }
 
@@ -396,7 +408,7 @@
             $(this).click(function(){
                 $(".toggleable_control").each(function(){
                     if (this.id.split("-")[0] === target){
-                        if (target === "edit" && state.playlist === undefined){
+                        if (target === "edit" && state.playlist.id === undefined){
                             message("Can not edit a playlist that has not beed loaded.");
                             return;
                         }
@@ -503,6 +515,10 @@
 
         $("#play_pause_toggle").click(function(){
             event.stopPropagation();
+            if (state.player === undefined){
+                message("No playlist loaded.");
+                return;
+            }
             this.children[0].src = (state.player.getPlayerState() === 2 ? "pause" : "play") + ".png"
             if (state.player.getPlayerState() === 2){
                 state.player.playVideo();
@@ -512,9 +528,44 @@
             }
         });
 
+        $("#previous_video").click(function(){
+            event.stopPropagation();
+            if (state.previous === undefined){
+                message("No previous video found.")
+                return;
+            }
+            loadVideo(state.previous);
+        });
+
+        $("#next_video").click(function(){
+            event.stopPropagation();
+            if (state.playlist.id === undefined){
+                message("No playlist loaded.");
+                return;
+            }
+            loadVideo(getNextVideo());
+        });
+
+        $("#rename_playlist_button").click(function(){
+            event.stopPropagation();
+            var newName = $("#rename_playlist").val();
+            message("Changing name to '" + newName + "'");
+            $.post("api/youtube_playlist/get_playlist", {by: "name", "name": newName}, function(response){
+                response = JSON.parse(response);
+                if (response.status === 200){
+                    message("Invalid playlist name");
+                    return;
+                }
+                $.post("api/youtube_playlist/edit_playlist", {playlist: state.playlist.id, name: newName}, function(response){
+                    $.post("api/youtube_playlist/get_playlist", {by: "id", "id": state.playlist.id}, function(response){
+                        loadPlaylist(JSON.parse(response));
+                        message("Name changed to '" + newName + "'");
+                    });
+                });
+            })
+        });
+
         /* Rename button */
-        /* Next video button */
-        /* Previous video button */
         /* Import button */
         /* Export button */
     });
