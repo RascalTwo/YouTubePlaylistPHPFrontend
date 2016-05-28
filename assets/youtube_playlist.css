@@ -31,9 +31,33 @@ li:hover, td:hover{
     background-color: #4E4E4E;
 }
 
-img {
+#video_list li img, #playlist_list li img {
     padding: 5px;
     float: left;
+}
+
+.video_controls {
+    position:relative;
+}
+
+.remove{
+    position:absolute;
+    left: -35px;
+    top: 65px;
+}
+
+input[type="button"]{
+    margin: 5px;
+}
+
+.move_up{
+    position:absolute;
+    left: -130px;
+}
+.move_down{
+    position:absolute;
+    left: -130px;
+    top: 65px;
 }
 
 div {

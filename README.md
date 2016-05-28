@@ -18,13 +18,18 @@ Powered by PHP.
 
 - Finish playlist deletion feature.
 - Finish playlist export/import feature.
-- Add per-video volume values.
+- Add per-playlist per-video volume values.
 - Add per-video play ranges.
     - Start time and End time.
-- Maybe disable actual youtube controls?
+- Disable actual youtube controls.
 - Second video column toggleable between public playlists and recommended videos.
 - Add video grouping.
     - Could be used to prevent two videos with similar sounds from being played back to back.
+- Reduce below-video element margins and/or paddings.
+
+# Bugs
+
+- Video title needs to have quotes encoded so they'll show up in the text fields in video editing mode.
 
 Replace checkboxes with sliders:
 
@@ -85,3 +90,7 @@ input:checked + .slider:before{
 .slider.round:before{
     border-radius: 50%;
 }
+
+Re-zero index code:
+
+$this -> video_ids = array_combine(range(0, count($this -> video_ids) - 1), array_values($this -> video_ids));

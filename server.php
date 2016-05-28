@@ -125,7 +125,7 @@ $router -> post("/api/youtube_playlist/remove_video", function(){
 
 $router -> post("/api/youtube_playlist/reorder_video", function(){
     global $config;
-    $change;
+    $change = false;
     $playlists = load_data($config["database"]["playlists"]);
     foreach ($playlists as $key => $_){
         if ($playlists[$key] -> get_id() != $_POST["playlist"]){
@@ -169,6 +169,31 @@ $router -> post("/api/youtube_playlist/edit_playlist", function(){
     }
     save_data($playlists, $config["database"]["playlists"]);
 }, ["playlist" => true, "shuffle" => false, "hidden" => false, "name" => false]);
+
+$router -> post("/api/youtube_playlist/edit_video", function(){
+    global $config;
+    $change = false;
+    $videos = load_data($config["database"]["videos"]);
+    foreach ($videos as $key => $_){
+        if ($videos[$key] -> get_id() != $_POST["id"]){
+            continue;
+        }
+        foreach ($_POST as $post_key => $value){
+            if ($post_key === "id"){
+                continue;
+            }
+            if (property_exists($videos[$key], $post_key)){
+                if ($videos[$key] -> {$post_key} !== $value){
+                    $change = true;
+                }
+                $videos[$key] -> {$post_key} = $value;
+            }
+        }
+    }
+    save_data($videos, $config["database"]["videos"]);
+
+    echo json_encode(["refresh" => $change]);
+}, ["id" => true, "volume" => true, "title" => true]);
 
 cleanup_videos($config["database"]["videos"], $config["database"]["playlists"]);
 

@@ -165,12 +165,13 @@
         $("#playlist_length").html(state.playlist.length);
         $("#playlist_info_table").show();
         if (state.controls.video){
-            appendVideoControls();
+            showVideoControls();
         }
         return true;
     }
 
     function loadVideo(id){
+        console.log("Loading video " + id);
         if (!state.replay && state.playing === id){
             loadVideo(getNextVideo());
         }
@@ -181,9 +182,10 @@
             width: 640,
             height: 320,
             videoId: id,
+            suggestedQuality: 'small',
             events: {
                 "onStateChange": playerStateChange,
-                "onReady": playerReady
+                "onReady": videoLoaded
             }
         }
         if (state.player === undefined){
@@ -232,31 +234,37 @@
         return ids[0];
     }
 
-    function playerStateChange(event){
-        if (event.data === 0){
-            message("Loading next video...");
-            state.played[state.playing] = 1;
-            loadVideo(getNextVideo());
-        }
-        else if (event.data === 1){
-            $("#play_pause_toggle").children()[0].src = "pause.png";
-        }
-        else if (event.data === 2){
-            $("#play_pause_toggle").children()[0].src = "play.png";
-        }
-    }
-
-    function playerReady(event){
+    function videoLoaded(){
         message("Video loaded.");
         state.player.playVideo();
+        state.player.setVolume(state.playlist.video_volumes[state.playlist.video_ids.indexOf(state.playing)]);
         $("#play_pause_toggle").children()[0].src = "pause.png";
+    }
+
+    function playerStateChange(event){
+        switch(event.data){
+            case -1:
+                videoLoaded();
+                break;
+            case 0:
+                message("Loading next video...");
+                state.played[state.playing] = 1;
+                loadVideo(getNextVideo());
+                break;
+            case 1:
+                $("#play_pause_toggle").children()[0].src = "pause.png";
+                break;
+            case 2:
+                $("#play_pause_toggle").children()[0].src = "play.png";
+                break;
+        }
     }
 
     function loadPlaylistList(){
         $.get("api/youtube_playlist/playlists", function(response){
             $("#playlist_list").html(response);
             if (state.controls.playlist){
-                appendPlaylistControls();
+                showPlaylistControls();
             }
         });
     }
@@ -265,24 +273,37 @@
         $("#response_message").html(message);
     }
 
-    function appendVideoControls(){
-        var listItems = $('#video_list > li');
-        listItems.each(function(index){
-            $(this).append('<br>');
-            $(this).append('<img class="handy" id="' + this.id + '-remove" src="red_x.png" width="24" height="24">');
+    function showVideoControls(){
+        var controlSpaces = $(".video_controls");
+        controlSpaces.each(function(index){
+            $(this).append('<img class="remove handy" id="' + this.id + '-remove" src="red_x.png" width="24" height="24">');
             if (index !== 0){
-                $(this).append('<img class="rotate-270 handy" id="' + this.id + '-up-reorder" src="arrow.png" width="24" height="24">');
+                $(this).append('<img class="move_up rotate-270 handy" id="' + this.id + '-up-reorder" src="arrow.png" width="24" height="24">');
             }
-            if (index !== listItems.length - 1){
-                $(this).append('<img class="rotate-90 handy" id="' + this.id + '-down-reorder" src="arrow.png" width="24" height="24">');
+            if (index !== controlSpaces.length - 1){
+                $(this).append('<img class="move_down rotate-90 handy" id="' + this.id + '-down-reorder" src="arrow.png" width="24" height="24">');
             }
         });
+
+        $(".video_title").each(function(){
+            $(this).html('<input type="text" id="' + this.id + '-title" value="' + this.innerHTML + '">');
+            $(this).append('<input type="button" id="' + this.id + '-apply" value="Apply">');
+        });
+
+        $(".video_volume").each(function(){
+            $(this).replaceWith('<input type="range" id="' + this.id + '-volume" min="0" max="100" value="' + this.innerHTML + '">');
+        });
+
+        $("#video_list > li").each(function(){
+            $(this).removeClass("handy");
+        })
     }
 
-    function appendPlaylistControls(){
+    function showPlaylistControls(){
         $('#playlist_list > li').each(function(){
             $(this).append('<br>');
             $(this).append('<img class="handy" id="' + this.id + '-delete" src="red_x.png" width="24" height="24">');
+            $(this).removeClass("handy");
         });
     }
 
@@ -300,6 +321,9 @@
 
         $('html').on('click', '.playlist', function(event){
             event.stopPropagation();
+            if (state.controls.playlist){
+                return;
+            }
             message("Loading playlist...")
             $.post("api/youtube_playlist/get_playlist", {by: "id", "id": event.target.id}, function(response){
                 if (!loadPlaylist(JSON.parse(response))){
@@ -310,13 +334,19 @@
                 if (state.playlist.video_ids.length === 0){
                     return;
                 }
-                //loadVideo(playlist.video_ids[0]);
             });
         });
 
         $('html').on('click', '.video', function(event){
             event.stopPropagation();
+            if (state.controls.video){
+                return;
+            }
             message("Loading video...");
+            if (event.target.tagName !== "LI"){
+                loadVideo($(event.target).closest("li")[0].id);
+                return;
+            }
             loadVideo(event.target.id);
         });
 
@@ -357,6 +387,26 @@
                 $.post("api/youtube_playlist/get_playlist", {by: "id", "id": state.playlist.id}, function(response){
                     loadPlaylist(JSON.parse(response));
                     message("Playlist order changed.");
+                });
+            });
+        });
+
+        $('html').on('click', 'input[id$="-apply"]', function(event){
+            event.stopPropagation();
+            message("Changing video details...");
+            var data = event.target.id.split("-");
+            var id = data.slice(0, data.length - 1).join("-");
+            var volume = $("#" + id + "-volume").val();
+            var title = $("#" + id + "-title").val();
+            $.post("api/youtube_playlist/edit_video", {id: id, title: title, volume: volume}, function(response){
+                if (!JSON.parse(response).refresh){
+                    message("No modifications done to video.");
+                    return;
+                }
+                loadPlaylistList();
+                $.post("api/youtube_playlist/get_playlist", {by: "id", "id": state.playlist.id}, function(response){
+                    loadPlaylist(JSON.parse(response));
+                    message("Video modified.");
                 });
             });
         });
@@ -463,7 +513,7 @@
                 return;
             }
             state.controls.video = true;
-            appendVideoControls();
+            showVideoControls();
             this.value = "Hide Video Controls";
             message("Entered Video edit mode.");
         })
@@ -478,7 +528,7 @@
                 return;
             }
             state.controls.playlist = true;
-            appendPlaylistControls();
+            showPlaylistControls();
             this.value = "Hide Playlist Controls";
             message("Entered Playlist edit mode.");
         })
@@ -565,7 +615,6 @@
             })
         });
 
-        /* Rename button */
         /* Import button */
         /* Export button */
     });

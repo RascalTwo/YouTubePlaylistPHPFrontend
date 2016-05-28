@@ -48,6 +48,14 @@ class Playlist{
         return get_videos($this -> video_ids, $path);
     }
 
+    private function get_volumes($path){
+        $volumes = [];
+        foreach ($this -> get_videos($path) as $video){
+            $volumes[] = $video -> volume;
+        }
+        return $volumes;
+    }
+
     public function get_id(){
         return $this -> id;
     }
@@ -93,6 +101,7 @@ class Playlist{
             "shuffle" => $this -> shuffle,
             "length" => date('H:i:s', $this -> seconds),
             "video_ids" => $this -> video_ids,
+            "video_volumes" => $this -> get_volumes($videos_path),
             "video_list_html" => $this -> to_video_list($videos_path)
         ];
     }
@@ -108,15 +117,20 @@ class Playlist{
 
 class Video{
     private $id;
-    public $title;
     private $seconds;
+    public $title;
+    public $volume;
+    public $group;
+    public $play_range;
 
     public function __construct($url){
         $html = file_get_contents($url);
         $this -> id = explode('"', explode('<meta property="og:url" content="https://www.youtube.com/watch?v=', $html)[1])[0];
-        $this -> title = explode('"', explode('<meta property="og:title" content="', $html)[1])[0];
+        $this -> title = strip_tags(filter_var(explode('"', explode('<meta property="og:title" content="', $html)[1])[0], FILTER_SANITIZE_STRING));
         $raw_time = explode('M', explode('"', explode('<meta itemprop="duration" content="PT', $html)[1])[0]);
         $this -> seconds = intval($raw_time[0]) * 60 + intval(explode('S', $raw_time[1])[0]);
+        $this -> volume = 100;
+        $this -> play_range = [0, $this -> seconds];
     }
 
     public function get_id(){
@@ -128,7 +142,21 @@ class Video{
     }
 
     public function to_list_item(){
-        return '<li class="handy video" id="' . $this -> id . '"><img id="' . $this -> id . '" src="' . $this -> thumbnail_url() . '" width="120" height="90">' . $this -> title . '<br><br>' . date('H:i:s', $this -> seconds + 18000) . '</li>';
+        $response = '<li class="handy video" id="' . $this -> id . '">';
+        $response .= '<span id="' . $this -> id . '" class="video_title">' . $this -> title . '</span>';
+        $response .= '<br>';
+        $response .= '<span id="' . $this -> id . '" class="video_controls">';
+        $response .= '</span>';
+        $response .= '<img id="' . $this -> id . '" src="' . $this -> thumbnail_url() . '" width="120" height="90">';
+        $response .= 'Length: ' . date('H:i:s', $this -> seconds + 18000);
+        $response .= "<br><br>";
+        $response .= date('H:i:s', $this -> play_range[0] + 18000) . ' -> ' . date('H:i:s', $this -> play_range[1] + 18000);
+        $response .= '<br><br>';
+        $response .= '<span id="' . $this -> id . '" class="video_volume">' . $this -> volume . '</span>';
+        $response .= '<img id="' . $this -> id .'" src="volume.png" width="24" height="24">';
+        $response .= "<br>";
+        $response .= '</li>';
+        return $response;
     }
 
     public function thumbnail_url(){
