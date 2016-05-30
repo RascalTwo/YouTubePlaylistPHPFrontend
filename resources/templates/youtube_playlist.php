@@ -178,6 +178,7 @@
         $("#play_pause_toggle").children()[0].src = "play_disabled.png";
         state.previous = state.playing;
         state.playing = id;
+        state.played[state.playing] = 1
         var arguments = {
             width: 640,
             height: 320,

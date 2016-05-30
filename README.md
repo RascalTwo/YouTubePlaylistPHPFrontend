@@ -26,10 +26,27 @@ Powered by PHP.
 - Add video grouping.
     - Could be used to prevent two videos with similar sounds from being played back to back.
 - Reduce below-video element margins and/or paddings.
+- Have video-column take 50% width instead of exactly 640px width.
+- Make video volume a per-playlist setting.
+- Show the text-value of the volume slider bar.
+- Bind enter buttons to all text fields.
+    - Apply video title
+    - Create new playlist
+    - Change playlist title
+- Require password to edit private playlists
+    - One password to view playlist
+    - Second password to edit playlist
+- Change data required to view playlist from name to password.
+- Make super complicated API allowing for playlists that automatically generated based on things
+    - Channel uploads
+        - If title matches regex
+    - Youtube searches
+- Change from parsing dragged-URL to actually accessing URL and getting data from there.
 
 # Bugs
 
 - Video title needs to have quotes encoded so they'll show up in the text fields in video editing mode.
+- Public checkbox during playlist creation doesn't work, all playlists are created public.
 
 Replace checkboxes with sliders:
 
