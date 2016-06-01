@@ -22,6 +22,10 @@ function cleanup_videos($videos_path, $playlists_path){
         unset($videos[$key]);
     }
     foreach ($videos as $key_one => $_){
+        if (!(is_object($videos[$key_one]))){
+            unset($videos[$key_one]);
+            continue;
+        }
         foreach ($videos as $key_two => $_){
             if ($key_one === $key_two){
                 continue;

@@ -426,7 +426,7 @@
             message("Attempting to add video/playlist...");
             event.preventDefault();
             event.stopPropagation();
-            var data = event.originalEvent.dataTransfer.items[0].getAsString(function(text){
+            event.originalEvent.dataTransfer.items[0].getAsString(function(text){
                 if (state.playlist === undefined){
                     message("Must load a playlist before adding videos.");
                     return;
@@ -452,6 +452,37 @@
                 });
             });
         });
+
+        $('html').on('drop', '#playlist_list > li', function(event){
+            message("Attempting to add video/playlist...");
+            event.preventDefault();
+            event.stopPropagation();
+            event.originalEvent.dataTransfer.items[0].getAsString(function(text){
+                var playlist;
+                if (event.target.tagName !== "LI"){
+                    playlist = $(event.target).closest("li")[0].id;
+                }
+                else{
+                    playlist = event.target.id
+                }
+                var type;
+                var id;
+                if (text.indexOf("v=") !== -1){
+                    type = "v";
+                }
+                else{
+                    type = "list";
+                }
+                id = text.split(type + "=")[1]
+                if (id.indexOf("&") !== -1){
+                    id = id.split("&")[0]
+                }
+                $.post("api/youtube_playlist/add_video", {playlist: playlist, type: type, id: id}, function(response){
+                    loadPlaylistList();
+                    message("Video(s) added.");
+                });
+            });
+        })
 
         $('.select_control').each(function(){
             event.stopPropagation();
