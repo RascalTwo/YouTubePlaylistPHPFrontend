@@ -58,7 +58,6 @@ $router -> get("/api/youtube_playlist/playlists", function(){
     global $config;
     $response = "";
     $playlists = load_data($config["database"]["playlists"]);
-    error_log(print_r($playlists, true));
     $videos = load_data($config["database"]["videos"]);
     foreach (get_public_playlists($playlists) as $playlist){
         $response .= $playlist -> to_list_item($videos);
