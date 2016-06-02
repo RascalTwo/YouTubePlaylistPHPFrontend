@@ -305,4 +305,28 @@ function swap_array_values(&$array, $first, $second){
     $array[$second] = $temp;
 }
 
+function comma_split_to_array($cookie){
+    $array = [];
+    foreach (explode(",", $cookie) as $item){
+        if ($item == NULL || $item == ''){
+            continue;
+        }
+        $array[] = $item;
+    }
+    return $array;
+}
+
+function array_to_comma_split($array){
+    return implode(",", $array) . ",";
+}
+
+function append_comma_array($comma_array, $new_value){
+    $array = comma_split_to_array($comma_array);
+    if (in_array($new_value, $array)){
+        return $comma_array;
+    }
+    $array[] = $new_value;
+    return array_to_comma_split($array);
+}
+
 ?>

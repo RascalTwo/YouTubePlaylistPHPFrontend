@@ -57,10 +57,20 @@ $router -> get("/comics", function(){
 $router -> get("/api/youtube_playlist/playlists", function(){
     global $config;
     $response = "";
-    foreach (get_public_playlists($config["database"]["playlists"]) as $playlist){
-        $response .= $playlist -> to_list_item($config["database"]["videos"]);
+    $playlists = load_data($config["database"]["playlists"]);
+    error_log(print_r($playlists, true));
+    $videos = load_data($config["database"]["videos"]);
+    foreach (get_public_playlists($playlists) as $playlist){
+        $response .= $playlist -> to_list_item($videos);
     }
     echo $response;
+    if (array_key_exists("visible_playlists", $_COOKIE)){
+        $response = "";
+        foreach (comma_split_to_array($_COOKIE["visible_playlists"]) as $id){
+            $response .= get_playlist_by_id($id, $playlists) -> to_list_item($videos);
+        }
+        echo $response;
+    }
 });
 
 $router -> post("/api/youtube_playlist/get_playlist", function(){
@@ -85,6 +95,12 @@ $router -> post("/api/youtube_playlist/get_playlist", function(){
     else{
         $json["status"] = 200;
         $json["playlist"] = $found_playlist -> to_array($config["database"]["videos"]);
+        if (array_key_exists("visible_playlists", $_COOKIE)){
+            setcookie("visible_playlists", append_comma_array($_COOKIE["visible_playlists"], $found_playlist -> get_id()), time() + (86400 * 30) . "/");
+        }
+        else{
+            setcookie("visible_playlists", array_to_comma_split([$found_playlist -> get_id()]), time() + (86400 * 30) . "/");
+        }
     }
 
     echo json_encode($json);
