@@ -288,7 +288,7 @@
 
         $(".video_title").each(function(){
             $(this).html('<input type="text" id="' + this.id + '-title" value="' + this.innerHTML + '">');
-            $(this).append('<input type="button" id="' + this.id + '-apply" value="Apply">');
+            $(this).append('<input type="button" id="' + this.id + '-apply" value="Apply"><a href="http://www.youtube.com/watch?v=' + this.id + '">URL</a>');
         });
 
         $(".video_volume").each(function(){

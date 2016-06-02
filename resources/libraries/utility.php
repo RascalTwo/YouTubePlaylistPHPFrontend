@@ -1,7 +1,6 @@
 <?php
 
 function generate_id($path){
-    $ids;
     if (file_exists($path)){
         $ids = unserialize(file_get_contents($path));
     }
