@@ -143,7 +143,7 @@ class Video{
 
     public function to_list_item(){
         $response = '<li class="handy video" id="' . $this -> id . '">';
-        $response .= '<a href="http://www.youtube.com/watch?v=' . $this -> id . '" id="' . $this -> id . '" class="video_title">' . $this -> title . '</a>';
+        $response .= '<span id="' . $this -> id . '" class="video_title">' . $this -> title . '</span>';
         $response .= '<br>';
         $response .= '<span id="' . $this -> id . '" class="video_controls">';
         $response .= '</span>';
